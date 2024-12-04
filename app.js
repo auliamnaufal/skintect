@@ -5,6 +5,8 @@
 const URL = "https://teachablemachine.withgoogle.com/models/nxnJjW5l6/";
 
 let model, webcam, labelContainer, maxPredictions;
+const predictionBuffer = []; // Buffer for storing frame predictions
+const numFrames = 10; // Number of frames to aggregate
 
 document.addEventListener("DOMContentLoaded", (event) => {
   init();
@@ -43,35 +45,39 @@ async function loop() {
 
 // run the webcam image through the image model
 async function predict() {
-  webcam.pause(); // Pause the webcam
+  const numFramesToCapture = 10; // Number of frames to process
+  predictionBuffer.length = 0; // Clear the buffer before capturing new frames
 
-  const numPredictions = 10; // Number of predictions to average
-  const aggregateProbabilities = {}; // Key-value store for disease names and probabilities
+  // Capture 10 frames in sequence
+  for (let i = 0; i < numFramesToCapture; i++) {
+    const currentPrediction = await model.predict(webcam.canvas);
+    predictionBuffer.push(currentPrediction);
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Add delay (~100ms/frame)
+  }
 
-  // Initialize the aggregateProbabilities object with class names
-  const initialPrediction = await model.predict(webcam.canvas);
-  initialPrediction.forEach((p) => {
-    aggregateProbabilities[p.className] = 0;
+  // Aggregate probabilities across frames
+  const aggregatedProbabilities = {};
+  predictionBuffer.forEach((framePrediction) => {
+    framePrediction.forEach((p) => {
+      if (!aggregatedProbabilities[p.className]) {
+        aggregatedProbabilities[p.className] = 0;
+      }
+      aggregatedProbabilities[p.className] += p.probability;
+    });
   });
 
-  // Run multiple predictions and sum probabilities
-  for (let i = 0; i < numPredictions; i++) {
-    const prediction = await model.predict(webcam.canvas);
-    prediction.forEach((p) => {
-      aggregateProbabilities[p.className] += p.probability;
-    });
+  // Average probabilities
+  for (const disease in aggregatedProbabilities) {
+    aggregatedProbabilities[disease] /= predictionBuffer.length;
   }
 
-  // Calculate average probabilities
-  for (const disease in aggregateProbabilities) {
-    aggregateProbabilities[disease] /= numPredictions;
-  }
-
-  // Find the disease with the highest average probability
+  // Find the disease with the highest probability
   let highestPercentage = 0;
   let predictedDisease = "";
 
-  for (const [disease, probability] of Object.entries(aggregateProbabilities)) {
+  for (const [disease, probability] of Object.entries(
+    aggregatedProbabilities
+  )) {
     if (probability > highestPercentage) {
       highestPercentage = probability;
       predictedDisease = disease;
@@ -81,14 +87,16 @@ async function predict() {
   // Display the prediction result
   const classPrediction = `
 		  <h3 id="label-container" class="text-lg font-regular tracking-tight text-gray-900">
-			Kulitmu kemungkinan memiliki penyakit <span class="font-semibold">${predictedDisease}</span> dengan persentase <span class="font-semibold">${(
-    highestPercentage * 100
-  ).toFixed(2)}%</span>
+			Kulitmu kemungkinan memiliki penyakit <span class="font-semibold">${predictedDisease}</span> 
+			dengan persentase <span class="font-semibold">${(
+        highestPercentage * 100
+      ).toFixed(2)}%</span>
 		  </h3>
-		  `;
-
+		`;
   labelContainer.innerHTML = classPrediction;
 
+  // Pause the webcam
+  webcam.pause();
   document.getElementById("shutterBtn").style.display = "none";
   document.getElementById("cameraBtn").style.display = "block";
 }
