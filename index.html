@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Ntaps</title>
+    <title>SkinTect | Detect. Protect. Perfect.</title>
     <script src="https://cdn.tailwindcss.com"></script>
   </head>
   <body>
@@ -38,85 +38,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
-    <script type="text/javascript">
-      // More API functions here:
-      // https://github.com/googlecreativelab/teachablemachine-community/tree/master/libraries/image
-
-      // the link to your model provided by Teachable Machine export panel
-      const URL = "https://teachablemachine.withgoogle.com/models/nxnJjW5l6/";
-
-      let model, webcam, labelContainer, maxPredictions;
-
-      document.addEventListener("DOMContentLoaded", (event) => {
-        init();
-      });
-
-      // Load the image model and setup the webcam
-      async function init() {
-        const modelURL = URL + "model.json";
-        const metadataURL = URL + "metadata.json";
-
-        // load the model and metadata
-        // Refer to tmImage.loadFromFiles() in the API to support files from a file picker
-        // or files from your local hard drive
-        // Note: the pose library adds "tmImage" object to your window (window.tmImage)
-        model = await tmImage.load(modelURL, metadataURL);
-        maxPredictions = model.getTotalClasses();
-
-        // Convenience function to setup a webcam
-        const flip = false; // whether to flip the webcam
-        webcam = new tmImage.Webcam(200, 200, flip); // width, height, flip
-        await webcam.setup({ facingMode: "environment" });
-        await webcam.play();
-        window.requestAnimationFrame(loop);
-
-        // append elements to the DOM
-        document.getElementById("webcam-container").appendChild(webcam.canvas);
-        // webcam.canvas.style.transform = "scaleX(-1)";
-        webcam.canvas.style.maxWidth = "100%";
-        labelContainer = document.getElementById("label-container");
-      }
-
-      async function loop() {
-        webcam.update(); // update the webcam frame
-        window.requestAnimationFrame(loop);
-      }
-
-      // run the webcam image through the image model
-      async function predict() {
-        // predict can take in an image, video or canvas html element
-        const prediction = await model.predict(webcam.canvas);
-        let highestPercentage = 0;
-        let predictedDeasese = "";
-
-        for (let i = 0; i < maxPredictions; i++) {
-          if (prediction[i].probability.toFixed(2) > highestPercentage) {
-            highestPercentage = prediction[i].probability.toFixed(2);
-            predictedDeasese = prediction[i].className;
-          }
-        }
-
-        const classPrediction = `
-        <h3 id="label-container" class="text-lg font-regular tracking-tight text-gray-900">
-          Kulitmu kemungkinan memiliki penyakit <span class="font-semibold">${predictedDeasese}</span> dengan persentase <span class="font-semibold">${highestPercentage}</span>
-        </h3>
-        `
-
-        labelContainer.innerHTML = classPrediction;
-
-        webcam.pause(); // update the webcam frame
-        document.getElementById("shutterBtn").style.display = "none";
-        document.getElementById("cameraBtn").style.display = "block";
-      }
-
-      async function openCamera() {
-        webcam.play(); // update the webcam frame
-        window.requestAnimationFrame(loop);
-        document.getElementById("webcam-container").innerHTML = "";
-        document.getElementById("webcam-container").appendChild(webcam.canvas);
-        document.getElementById("shutterBtn").style.display = "block";
-        document.getElementById("cameraBtn").style.display = "none";
-      }
-    </script>
+    <script type="text/javascript" src="./app.js"></script>
   </body>
 </html>
